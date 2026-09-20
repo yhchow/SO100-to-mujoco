@@ -94,6 +94,15 @@
               <inertial pos="-0.00852653 -0.0352279 -2.34622e-05" quat="-0.0522806 0.705235 0.0549524 0.704905"
                 mass="0.0661321" diaginertia="3.45403e-05 2.39041e-05 1.94704e-05"/>
               <joint name="Wrist_Pitch" class="Wrist_Pitch"/>
+              <!-- Wrist camera. Mounted on this link rather than on Fixed_Jaw so it does
+                   NOT rotate with Wrist_Roll: on the jaw it swings under the gripper and
+                   turns upside down as the wrist rolls. Sits above and to one side of the
+                   fingers looking down past them; at a top-down grasp "straight above" is
+                   back inside the forearm, so the offset has to be sideways. Mirror it to
+                   the other side by negating pos x and the first and fourth xyaxes terms.
+                   Not part of upstream Menagerie. -->
+              <camera name="wrist" pos="0.0750 -0.0914 0.0155"
+                      xyaxes="-0.029 -0.359 -0.933 -0.606 0.748 -0.269" fovy="95"/>
               <geom type="mesh" mesh="Wrist_Pitch_Roll" class="visual"/>
               <geom type="mesh" mesh="Wrist_Pitch_Roll_Motor" class="motor_visual"/>
               <geom type="mesh" mesh="Wrist_Pitch_Roll" class="collision"/>
@@ -101,10 +110,6 @@
                 <inertial pos="0.00552377 -0.0280167 0.000483583" quat="0.41836 0.620891 -0.350644 0.562599"
                   mass="0.0929859" diaginertia="5.03136e-05 4.64098e-05 2.72961e-05"/>
                 <joint name="Wrist_Roll" class="Wrist_Roll"/>
-                <!-- Wrist camera: sits behind the fingers looking out along the
-                     approach axis (-y in this body frame). Added for ACT-style
-                     recording; not part of upstream Menagerie. -->
-                <camera name="wrist" pos="0 -0.010 0.095" xyaxes="0.998 0.063 0 -0.045 0.705 -0.708" fovy="95"/>
                 <geom type="mesh" mesh="Fixed_Jaw" class="visual"/>
                 <geom type="mesh" mesh="Fixed_Jaw_Motor" class="motor_visual"/>
                 <geom type="mesh" mesh="Fixed_Jaw_Collision_1" class="collision"/>
