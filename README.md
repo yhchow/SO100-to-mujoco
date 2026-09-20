@@ -14,27 +14,24 @@ physical leader arm  ->  lerobot SOLeader  ->  degrees  ->  alignment  ->  MuJoC
 
 ## Why this exists
 
-The obvious move is to reach for a simulator that already speaks SO-100. The existing
-options each solve a different problem:
+I have an SO-100 leader arm and wanted to drive a simulated arm with it — to work on
+grasping without tying up the hardware, and to build toward recording demonstrations for
+policy training.
 
-| Project | What it is | Why not just use it |
-|---|---|---|
-| [lachlanhurst/so100-mujoco-sim](https://github.com/lachlanhurst/so100-mujoco-sim) | Qt GUI around MuJoCo with record/playback | Pins an **old vendored copy of lerobot** with an incompatible calibration format, and models the arm as a *follower* — its "drive from the real robot" mode works by disabling torque so you can backdrive a follower. There is no leader path. |
-| [oliverchoy/open-source-leader-arm](https://github.com/oliverchoy/open-source-leader-arm) | A leader arm streaming into MuJoCo | Different hardware: **AS5600 magnetic encoders on an ESP32**, not Feetech servos, and no lerobot. Nothing to reuse if your leader is a stock SO-100. |
-| [adityakamath/so_arm_ros2](https://github.com/adityakamath/so_arm_ros2) | ROS 2 + ros2_control, Feetech *and* MuJoCo | A full ROS 2 stack with Pinocchio IK and collision checking. Correct, but heavy if all you want is to watch your arm move in a sim. |
-| [lerobot](https://github.com/huggingface/lerobot) itself | The library this repo depends on | As of 0.5.2 it has **no MuJoCo target**: `lerobot.robots` are all physical arms and `lerobot.envs` are benchmark suites (libero, metaworld, robocasa). There is no built-in "teleoperate a MuJoCo arm". |
+What I needed was narrow: read the leader's calibrated joint angles over its Feetech serial
+bus, convert them into the MuJoCo model's joint frame, and step the sim. That conversion is
+the only real problem, because two things differ per arm:
 
-So if your leader is a stock Feetech-servo SO-100, you already calibrated it with
-`lerobot-calibrate`, and you want the sim to mirror it without adopting a GUI or ROS —
-that gap is what this fills.
+- **Where zero is.** The servo calibration's zero and the model's zero are not the same
+  pose, so every joint needs an offset.
+- **Which way each joint turns.** That depends on how the arm was assembled, so signs
+  can't be hardcoded.
 
-Two things here are less common than the rest:
+`align.py` measures both, and keeps them in `alignment.json` — separate from the servo
+calibration, so re-measuring one never invalidates the other.
 
-- **Alignment is kept separate from calibration.** lerobot's calibration describes *the
-  arm*; this repo's `alignment.json` describes *how the arm's frame relates to the
-  model's*. Keeping them apart means re-measuring one never invalidates the other. Most
-  projects hardcode joint directions instead, which breaks on differently-assembled arms.
-- **Cube placement is measured, not guessed** — see [Cube placement](#cube-placement).
+The rest is deliberately small: no GUI, no framework, no abstraction layers. Six scripts
+that each do one thing, so the whole data path stays readable end to end.
 
 ---
 
