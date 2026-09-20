@@ -1,0 +1,26 @@
+{
+  "Rotation": {
+    "sign": 1,
+    "offset_rad": 0.0
+  },
+  "Pitch": {
+    "sign": 1,
+    "offset_rad": 0.0
+  },
+  "Elbow": {
+    "sign": 1,
+    "offset_rad": 0.0
+  },
+  "Wrist_Pitch": {
+    "sign": 1,
+    "offset_rad": 0.0
+  },
+  "Wrist_Roll": {
+    "sign": 1,
+    "offset_rad": 0.0
+  },
+  "Jaw": {
+    "sign": 1,
+    "offset_rad": 0.0
+  }
+}
