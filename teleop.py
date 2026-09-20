@@ -4,11 +4,13 @@
 """
 
 import argparse
+import math
 import time
 
 import mujoco
 import mujoco.viewer
 
+import panels as panels_module
 import so100
 
 
@@ -25,6 +27,11 @@ def main():
         help="ctrl: drive the position actuators, arm follows with real dynamics (default). "
              "qpos: snap joints exactly, no physics.",
     )
+    parser.add_argument(
+        "--panels", action=argparse.BooleanOptionalAction, default=True,
+        help="overlay each model camera as a picture-in-picture panel, plus a live "
+             "readout of joint angles and loop rate (default: on)",
+    )
     args = parser.parse_args()
 
     model, data, ranges = so100.load_model(args.scene)
@@ -36,15 +43,31 @@ def main():
         print("Note: --mode qpos skips physics, so the cubes cannot be pushed or picked up.\n"
               "      Use --mode ctrl (the default) to grasp them.")
 
+    overlay = panels_module.Panels(model) if args.panels else None
+    if overlay is not None:
+        print(f"Panels: {', '.join(overlay.cameras) or 'none in this scene'}. "
+              "Press Tab / Shift-Tab to hide the viewer's own UI, [ and ] to fly the "
+              "main view through each camera.")
+
     teleop = so100.connect_leader(args.port, args.id)
     print(f"Connected to {args.port}. Move the leader arm; close the viewer to stop.")
+
+    read_hz = 0.0
+    last_read = time.perf_counter()
 
     try:
         with mujoco.viewer.launch_passive(model, data) as viewer:
             wall_start = time.perf_counter()
             next_sync = 0.0
             while viewer.is_running():
-                angles = so100.to_mujoco(so100.read_leader(teleop), alignment, ranges)
+                reading = so100.read_leader(teleop)
+                angles = so100.to_mujoco(reading, alignment, ranges)
+
+                now_read = time.perf_counter()
+                dt = now_read - last_read
+                last_read = now_read
+                if dt > 0:  # smooth it, a single interval is too jumpy to read
+                    read_hz = 0.9 * read_hz + 0.1 / dt if read_hz else 1 / dt
 
                 if args.mode == "qpos":
                     for adr, angle in zip(qpos_adr, angles):
@@ -69,11 +92,20 @@ def main():
                 # render thread and makes the camera unresponsive.
                 now = time.perf_counter()
                 if now >= next_sync:
+                    if overlay is not None:
+                        overlay.update(viewer, data, {
+                            "joints": {name: math.degrees(angle)
+                                       for name, angle in zip(so100.JOINT_NAMES, angles)},
+                            "gripper": reading["gripper"],
+                            "read_hz": read_hz,
+                        })
                     viewer.sync()
                     next_sync = now + 1 / 60
     except KeyboardInterrupt:
         pass
     finally:
+        if overlay is not None:
+            overlay.close()
         teleop.disconnect()
         print("Disconnected.")
 
