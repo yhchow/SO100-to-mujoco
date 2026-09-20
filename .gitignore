@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+
+# Stale local copies of the lerobot calibration. The live one lives in
+# ~/.cache/huggingface/lerobot/calibration/teleoperators/so_leader/
+Calibration/

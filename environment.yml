@@ -1,0 +1,23 @@
+# Recreate the environment this project runs in:
+#     conda env create -f environment.yml
+#     conda activate so100-mujoco
+#
+# lerobot   talks to the leader arm's Feetech servos and owns its calibration
+# mujoco    simulates and renders the arm (viewer + offscreen cameras)
+# pyserial  lerobot's serial transport; also used directly to list COM ports
+# numpy     array maths in the mapping layer
+#
+# lerobot pulls in torch and a large dependency tree, so the first solve takes
+# a while. If you already have a working lerobot environment, you can skip this
+# file and just `pip install mujoco` into it -- that is all this project adds.
+name: so100-mujoco
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - lerobot==0.5.2
+      - mujoco==3.13.0
+      - pyserial>=3.5
+      - numpy>=2.0
