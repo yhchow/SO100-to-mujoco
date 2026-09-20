@@ -2,6 +2,9 @@
 
 Drive a simulated SO-100 arm in MuJoCo by moving a physical SO-100 **leader** arm.
 
+Teleoperate with **only a leader arm** — the simulation stands in for the follower — on an
+ordinary laptop.
+
 A few small scripts, no framework. Servo communication is [lerobot](https://github.com/huggingface/lerobot)'s,
 the arm model is [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie)'s,
 and this repo is only the glue between them.
@@ -33,6 +36,26 @@ calibration, so re-measuring one never invalidates the other.
 The rest is deliberately small: no GUI, no framework, no abstraction layers. Six scripts
 that each do one thing, so the whole data path stays readable end to end.
 
+### What this saves you
+
+**A follower arm.** lerobot's
+[teleoperation workflow](https://huggingface.co/docs/lerobot/il_robots) drives a physical
+follower from a physical leader — two complete arms. Here the simulated arm is the
+follower, so a leader plus a USB cable is the whole rig. Useful if you have not built the
+second arm yet, or do not want to risk it while experimenting.
+
+**A powerful GPU.** MuJoCo runs physics on the CPU and renders with plain OpenGL. This repo
+was developed on a laptop with an **RTX 3050 Ti (4 GB VRAM)**; physics runs about **100x
+faster than real time** on the cube scene (200x on the bare arm), so the leader arm, not
+the simulator, is the bottleneck. For comparison, Isaac Sim 5.1's
+[documented minimum](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/requirements.html)
+is a GeForce RTX 4080 with 16 GB VRAM, 32 GB RAM and 50 GB of disk, and it requires a GPU
+with RT cores.
+
+The trade is worth stating plainly: you give up photorealistic rendering, large-scale
+domain randomisation, and thousands of parallel environments — everything a GPU simulator
+exists to provide. For driving one arm by hand and watching it move, none of that applies.
+
 ---
 
 ## What you need
@@ -52,7 +75,9 @@ that each do one thing, so the whole data path stays readable end to end.
 | `pyserial` | Serial transport; also used to list COM ports |
 | `numpy` | Array maths in the mapping layer |
 
-A discrete GPU is effectively required for the viewer — see [Hybrid graphics](#hybrid-graphics).
+No particular GPU class is needed — but on laptops with switchable graphics, some
+integrated drivers mis-render the viewer window. That is a driver quirk, not a performance
+limit, and [Hybrid graphics](#hybrid-graphics) explains the fix.
 
 ---
 
@@ -171,9 +196,27 @@ a cube spins out from between the flat pads.
 
 ---
 
-## Cameras
+## Data collection for lerobot — planned
 
-Two cameras exist, ready for ACT-style recording later:
+**Not implemented yet.** This repo teleoperates today; it does not record datasets. This
+section describes where it is going and what already exists for it, so the camera setup
+below makes sense.
+
+### The target
+
+lerobot's [official data collection](https://huggingface.co/docs/lerobot/il_robots) uses
+`lerobot-record` with a physical **follower** arm and USB cameras, writing a
+`LeRobotDataset` of `observation.state`, `action` and one `observation.images.*` stream per
+camera. That dataset then trains a policy with `lerobot-train --policy.type=act`.
+
+The plan here is to produce the same dataset format with the simulated arm standing in for
+the follower, so the output is trainable by lerobot's own ACT without conversion — and by a
+from-scratch implementation, on identical data, for comparison.
+
+### What already exists: the cameras
+
+Two cameras are defined in the model, mirroring the wrist + overhead pair that lerobot's
+tutorial uses on real hardware:
 
 | Camera | Where | Scene |
 |---|---|---|
@@ -190,7 +233,21 @@ renderer.update_scene(data, camera="wrist")
 image = renderer.render()
 ```
 
-Nothing records yet — that comes with the dataset recorder.
+### What is still missing
+
+- A record loop sampling state, action and both camera streams at a fixed rate
+- `LeRobotDataset` writing, episode boundaries, and a task description string
+- Episode control (keep / re-record / stop) equivalent to `lerobot-record`'s
+
+Worth knowing before you plan around it: rendering two camera streams per frame costs far
+more than the physics does, so the recorder will need its own render cadence rather than
+running inside the teleop loop.
+
+### Dataset guidance
+
+When it does land, lerobot's own advice applies: at least **50 episodes**, roughly 10 per
+object location, cameras kept fixed, and consistent grasping behaviour. A useful rule from
+their docs — you should be able to do the task yourself looking only at the camera images.
 
 ---
 
@@ -322,7 +379,8 @@ alignment.example.json   the shape align.py writes, with neutral values
 - [x] Cube scene within reach, verified graspable
 - [x] Overhead and wrist cameras
 - [ ] Dataset recorder writing `LeRobotDataset` format, so the same data can train
-      lerobot's ACT *and* a from-scratch implementation for comparison
+      lerobot's ACT *and* a from-scratch implementation for comparison — see
+      [Data collection for lerobot](#data-collection-for-lerobot--planned)
 
 ---
 
