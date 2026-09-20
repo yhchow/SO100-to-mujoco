@@ -104,7 +104,7 @@
                 <!-- Wrist camera: sits behind the fingers looking out along the
                      approach axis (-y in this body frame). Added for ACT-style
                      recording; not part of upstream Menagerie. -->
-                <camera name="wrist" pos="0 -0.010 0.095" xyaxes="-0.998 -0.063 0 0.045 -0.705 0.708" fovy="75"/>
+                <camera name="wrist" pos="0 -0.010 0.095" xyaxes="0.998 0.063 0 -0.045 0.705 -0.708" fovy="95"/>
                 <geom type="mesh" mesh="Fixed_Jaw" class="visual"/>
                 <geom type="mesh" mesh="Fixed_Jaw_Motor" class="motor_visual"/>
                 <geom type="mesh" mesh="Fixed_Jaw_Collision_1" class="collision"/>
